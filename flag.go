@@ -970,6 +970,26 @@ func (f *FlagSet) Parse(arguments []string) error {
 		}
 	}
 
+	if err := f.ParseLoaders(); err != nil {
+		switch f.errorHandling {
+		case ContinueOnError:
+			return err
+		case ExitOnError:
+			os.Exit(2)
+		case PanicOnError:
+			panic(err)
+		}
+		return err
+	}
+
+	return nil
+}
+
+//ParseLoaders Dario Stuff
+func (f *FlagSet) ParseLoaders() error {
+	//Handle file://
+	f.formal["Server"].Value.Set("GAGA")
+	//How to handle nats:// though :S?
 	return nil
 }
 
