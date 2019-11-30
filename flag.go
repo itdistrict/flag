@@ -67,12 +67,15 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"reflect"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/labstack/gommon/log"
 )
 
 // ErrHelp is the error returned if the -help or -h flag is invoked
@@ -985,12 +988,39 @@ func (f *FlagSet) Parse(arguments []string) error {
 	return nil
 }
 
+const (
+	filePrefix   = "file://"
+	natsPrefix   = "nats://"
+	stringPrefix = "string://"
+)
+
 //ParseLoaders Dario Stuff
 func (f *FlagSet) ParseLoaders() error {
-	//Handle file://
-	f.formal["Server"].Value.Set("GAGA")
-	//How to handle nats:// though :S?
+	m := f.formal
+	for _, flag := range m {
+		if strings.HasPrefix(flag.Value.String(), filePrefix) { //e.g. "file://<path>"
+			val, err := loadFromFile(strings.TrimPrefix(flag.Value.String(), filePrefix))
+			if err != nil {
+				return err
+			}
+			flag.Value.Set(val)
+		} else if strings.HasPrefix(flag.Value.String(), natsPrefix) { //e.g. "nats://<subject>:<value>"
+			//How to handle nats:// though :S?
+		} else if strings.HasPrefix(flag.Value.String(), filePrefix) { //e.g. "string://<value>"
+			//handle string, nothing to do
+		}
+	}
+
 	return nil
+}
+
+func loadFromFile(path string) (string, error) {
+	b, err := ioutil.ReadFile(path) // just pass the file name
+	if err != nil {
+		log.Error("There was a problem retrieving the content from file: ", err.Error())
+		return string(b), errors.New("There was a problem retrieving the content from file: " + err.Error())
+	}
+	return string(b), nil
 }
 
 // Parsed reports whether f.Parse has been called.
