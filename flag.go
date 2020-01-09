@@ -1020,7 +1020,7 @@ func loadFromFile(path string) (string, error) {
 		log.Error("There was a problem retrieving the content from file: ", err.Error())
 		return string(b), errors.New("There was a problem retrieving the content from file: " + err.Error())
 	}
-	return string(b), nil
+	return strings.TrimSuffix(string(b), "\n"), nil
 }
 
 // Parsed reports whether f.Parse has been called.
