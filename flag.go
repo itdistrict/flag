@@ -79,7 +79,7 @@ import (
 )
 
 var (
-	fileParams []string
+	fileParams map[string]string
 )
 
 // ErrHelp is the error returned if the -help or -h flag is invoked
@@ -1000,13 +1000,14 @@ const (
 // if a specific prefix was defined
 func (f *FlagSet) ParseFileLoader() error {
 	m := f.formal
+	fileParams = make(map[string]string)
 	for _, flag := range m {
 		if strings.HasPrefix(flag.Value.String(), filePrefix) { //e.g. "file://<path>"
 			val, err := loadFromFile(strings.TrimPrefix(flag.Value.String(), filePrefix))
 			if err != nil {
 				return err
 			}
-			fileParams = append(fileParams, flag.Name)
+			fileParams[flag.Name] = flag.Value.String()
 			flag.Value.Set(val)
 		}
 	}
@@ -1014,14 +1015,14 @@ func (f *FlagSet) ParseFileLoader() error {
 	return nil
 }
 
-// IsFileParam checks if a parameters was loaded over file
-func IsFileParam(name string) bool {
-	for _, v := range fileParams {
-		if name == v {
-			return true
+// GetFileParam returns the original param string
+func GetFileParam(name string) string {
+	for k, v := range fileParams {
+		if name == k {
+			return v
 		}
 	}
-	return false
+	return ""
 }
 
 func loadFromFile(path string) (string, error) {
