@@ -78,6 +78,10 @@ import (
 	"github.com/labstack/gommon/log"
 )
 
+var (
+	fileParams []string
+)
+
 // ErrHelp is the error returned if the -help or -h flag is invoked
 // but no such flag is defined.
 var ErrHelp = errors.New("flag: help requested")
@@ -973,7 +977,7 @@ func (f *FlagSet) Parse(arguments []string) error {
 		}
 	}
 
-	if err := f.ParseLoaders(); err != nil {
+	if err := f.ParseFileLoader(); err != nil {
 		switch f.errorHandling {
 		case ContinueOnError:
 			return err
@@ -989,13 +993,12 @@ func (f *FlagSet) Parse(arguments []string) error {
 }
 
 const (
-	filePrefix   = "file://"
-	natsPrefix   = "nats://"
-	stringPrefix = "string://"
+	filePrefix = "file://"
 )
 
-//ParseLoaders Dario Stuff
-func (f *FlagSet) ParseLoaders() error {
+// ParseFileLoader is parsing through all parameters and loading the content of the file
+// if a specific prefix was defined
+func (f *FlagSet) ParseFileLoader() error {
 	m := f.formal
 	for _, flag := range m {
 		if strings.HasPrefix(flag.Value.String(), filePrefix) { //e.g. "file://<path>"
@@ -1003,15 +1006,22 @@ func (f *FlagSet) ParseLoaders() error {
 			if err != nil {
 				return err
 			}
+			fileParams = append(fileParams, flag.Name)
 			flag.Value.Set(val)
-		} else if strings.HasPrefix(flag.Value.String(), natsPrefix) { //e.g. "nats://<subject>:<value>"
-			//How to handle nats:// though :S?
-		} else if strings.HasPrefix(flag.Value.String(), filePrefix) { //e.g. "string://<value>"
-			//handle string, nothing to do
 		}
 	}
 
 	return nil
+}
+
+// IsFileParam checks if a parameters was loaded over file
+func IsFileParam(name string) bool {
+	for _, v := range fileParams {
+		if name == v {
+			return true
+		}
+	}
+	return false
 }
 
 func loadFromFile(path string) (string, error) {
