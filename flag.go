@@ -278,14 +278,15 @@ type FlagSet struct {
 	// a custom error handler.
 	Usage func()
 
-	name          string
-	parsed        bool
-	actual        map[string]*Flag
-	formal        map[string]*Flag
-	envPrefix     string   // prefix to all env variable names
-	args          []string // arguments after flags
-	errorHandling ErrorHandling
-	output        io.Writer // nil means stderr; use out() accessor
+	name           string
+	parsed         bool
+	actual         map[string]*Flag
+	formal         map[string]*Flag
+	envPrefix      string   // prefix to all env variable names
+	args           []string // arguments after flags
+	errorHandling  ErrorHandling
+	output         io.Writer // nil means stderr; use out() accessor
+	preservedFlags []string
 }
 
 // A Flag represents the state of a flag.
@@ -917,6 +918,11 @@ func (f *FlagSet) parseOne() (bool, error) {
 	return true, nil
 }
 
+// PreservedFlags sets the preservedFlags to prevent preloading file contents
+func (f *FlagSet) PreservedFlags(parameters []string) {
+	f.preservedFlags = parameters
+}
+
 // Parse parses flag definitions from the argument list, which should not
 // include the command name. Must be called after all flags in the FlagSet
 // are defined and before flags are accessed by the program.
@@ -1002,7 +1008,7 @@ func (f *FlagSet) ParseFileLoader() error {
 	m := f.formal
 	fileParams = make(map[string]string)
 	for _, flag := range m {
-		if strings.HasPrefix(flag.Value.String(), filePrefix) { //e.g. "file://<path>"
+		if !stringInSlice(flag.Name, f.preservedFlags) && strings.HasPrefix(flag.Value.String(), filePrefix) { //e.g. "file://<path>"
 			val, err := loadFromFile(strings.TrimPrefix(flag.Value.String(), filePrefix))
 			if err != nil {
 				return err
@@ -1011,8 +1017,16 @@ func (f *FlagSet) ParseFileLoader() error {
 			flag.Value.Set(val)
 		}
 	}
-
 	return nil
+}
+
+func stringInSlice(a string, list []string) bool {
+	for _, b := range list {
+		if b == a {
+			return true
+		}
+	}
+	return false
 }
 
 // GetFileParam returns the original param string
